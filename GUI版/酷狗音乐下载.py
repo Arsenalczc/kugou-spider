@@ -23,7 +23,11 @@ def download():
     mode = eg.choicebox(msg='请选择下载模式', title='选择模式', choices=mode_list)
 
     if mode == '下载整个歌单':
-        get_song_list()
+        url = easygui.enterbox('请输入分享歌单的链接(支持酷狗码和QQ空间分享)', '输入连接')
+        if (type(eval(url)) == int):
+            kugou_code(url)
+        else:
+            get_song_list(url)
 
         if eg.ynbox(msg='歌单获取完成，已保存在<歌单列表.txt>，是否一键下载？', title='一键下载', choices=['是', '否']):
             download_list()
