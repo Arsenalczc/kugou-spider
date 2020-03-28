@@ -2,7 +2,7 @@ from urllib import parse
 
 from lxml import etree
 import requests
-
+import hashlib
 
 def kugou_code(code):
     # 这堆东西别瞎改，酷狗特别奇葩，data发的字符串，双引号还不能换成引号
@@ -35,8 +35,7 @@ def kugou_code(code):
         song_list = json3['data']
         return song_list
     elif json2['data']["type"] == 1:  # 单曲酷狗码
-        return json2['data']['hash']
-
+        return page['data']['list']['hash']
 
 
 def lyrics(json_list):
@@ -50,23 +49,29 @@ def lyrics(json_list):
                 json_list['data']['lyrics'].replace('\n', '').replace('\ufeff', '').replace('[id:$00000000]',
                                                                                             '').replace('\r',
                                                                                                         '', 1))
-        print('歌词下载完成\n')
+        print('歌词下载完成')
+
 
 class kugou_download:
     def __init__(self):
         self.headers = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4023.0 Safari/537.36 Edg/81.0.396.0'}
-        try:
-            with open('数据/cookies.txt', 'r') as f:
-                cookies_dict = {}
-                cookies1 = f.read().replace(' ', '')
-                cookies_list = cookies1.split(';')
+        with open('数据/cookies.txt', 'r') as f:
+            cookies_dict = {}
+            try:
+                cookies1 = f.read()
+                cookies_list = cookies1.replace(' ', '').split(';')
+                for str1 in cookies_list:
+                    key, values = str1.split('=', 1)
+                    cookies_dict[key] = values
+            except:
+                cookies1 = 'kg_mid=b434c13fcd475da311e141a0cf532557; _WCMID=16477e145e53a4a7e38ece94; kg_dfid=1aJRd418KcGl0dnFZB3ucZDk; Hm_lvt_aedee6983d4cfc62f509129360d6bb3d=1582544353; kg_dfid_collect=d41d8cd98f00b204e9800998ecf8427e'
+                cookies_list = cookies1.replace(' ', '').split(';')
                 for str1 in cookies_list:
                     key, values = str1.split('=', 1)
                     cookies_dict[key] = values
             self.cookies = cookies_dict
-        except:
-            self.cookies = {}
+
 
     def download_main(self, song_hash, is_lyrics):
         hash_url = 'https://wwwapi.kugou.com/yy/index.php?r=play/getdata&callback=jQuery191044011229047114075_1566198263706&hash={}'.format(
@@ -77,7 +82,7 @@ class kugou_download:
             log.write(str(main_json))
         if main_json['status'] == 0:
             print('cookies过期或发生其他错误，请重试')
-            print('程序将退出')
+            print('以下是错误代码:'+str(main_json))
             quit(1)
         # 傻逼文件名的检测替换
         file_name_error = ['"', '?', '/', '*', ':', '\\', '|', '<', '>']
@@ -89,7 +94,7 @@ class kugou_download:
         song_length = int(main_json['data']['timelength'])
         song_free = main_json['data']['is_free_part']  # 试听歌曲为1，普通歌曲为0
         if song_url == '':  # 检测歌曲是否能下载
-            return '❌歌曲<{}>无数据或需要付费下载';
+            return '❌歌曲<{}>无数据或需要付费下载'
         else:
             try:  # 检测是否存在已下载文件
                 notice_file_name = ''
@@ -120,7 +125,7 @@ class kugou_download:
         song_list = []
         song_dict = {}
         for song in song_json['data']['lists']:
-            file_name = song['FileName'].replace('<em>', '').replace('</em>', '').replace('<\\\\/em>','')
+            file_name = song['FileName'].replace('<em>', '').replace('</em>', '').replace('<\\/em>', '')
             song_dict[file_name] = i
             song_list.append(file_name)
             i += 1
@@ -136,5 +141,3 @@ class kugou_download:
         #     lyrics(download_hash(song_json['data']['lists'][i]['SQFileHash'], True), lyrics_mode)
         # elif song_mode == 4:  # 无损
         #     lyrics(download_hash(song_json['data']['lists'][i]['ResFileHash'], True), lyrics_mode)
-
-
